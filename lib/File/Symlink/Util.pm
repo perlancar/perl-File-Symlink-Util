@@ -100,17 +100,17 @@ sub adjust_rel_symlink {
  chdir "/home/ujang";
 
  # create a relative path symlink
- symlink "/etc/passwd", "symlink1";      # symlink1 -> ../../etc/passwd
- symlink "../../etc/passwd", "symlink1"; # symlink1 -> ../../etc/passwd
+ symlink_rel "/etc/passwd", "symlink1";      # symlink1 -> ../../etc/passwd
+ symlink_rel "../../etc/passwd", "symlink1"; # symlink1 -> ../../etc/passwd
 
  # create an absolute path symlink
- symlink "/etc/passwd", "symlink1";      # symlink1 -> ../../etc/passwd
- symlink "../../etc/passwd", "symlink1"; # symlink1 -> ../../etc/passwd
+ symlink_abs "/etc/passwd", "symlink1";      # symlink1 -> ../../etc/passwd
+ symlink_abs "../../etc/passwd", "symlink1"; # symlink1 -> ../../etc/passwd
 
  # adjust second symlink to be relative to the second path
  symlink "dir1/target", "symlink1";
- cp "symlink1", "dir2/symlink1";                 # dir2/symlink2 points to dir1/target, which is now broken
- adjust_rel_symlink "symlink1", "dir2/symlink1"; # dir2/symlink2 now points to ../dir1/target
+ % cp -a  "symlink1", "dir2/symlink2";           # dir2/symlink2 points to dir1/target, which is now broken
+ adjust_rel_symlink "symlink1", "dir2/symlink2"; # dir2/symlink2 is now fixed, points to ../dir1/target
 
 
 =head1 DESCRIPTION
