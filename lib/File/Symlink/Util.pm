@@ -142,10 +142,12 @@ Usage:
 
  adjust_rel_symlink($link_path1, $link_path2);
 
-Adjust relative symlink in C<$link_path1> so that it becomes relative to
-C<$link_path2>. This is useful if you copy a relative symlink from
-C<$link_path1> to C<$link_path2> and want the new symlink to point to the
-original target.
+Adjust relative symlink in C<$link_path2> (that used to be relative to
+C<$link_path1>) so that its target now becomes relative to C<$link_path2>.
+
+This is useful if you copy a relative symlink e.g. C<$link_path1> to
+C<$link_path2>. Because the target is not adjusted, and want the new symlink to
+point to the original target.
 
 Both C<$link_path1> and C<$link_path2> must be symlink.
 
