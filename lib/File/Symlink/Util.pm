@@ -17,6 +17,7 @@ our @EXPORT_OK = qw(
                        symlink_rel
                        symlink_abs
                        adjust_rel_symlink
+                       check_symlink
                );
 
 
@@ -86,6 +87,76 @@ sub adjust_rel_symlink {
     1;
 }
 
+sub check_symlink {
+    my %args = @_;
+    my $res = [200, "OK", []];
+
+    my $symlink; defined($symlink = $args{symlink}) or return [400, "Please specify 'symlink' argument"];
+    (-l $symlink) or do { push @{ $res->[2] }, (-e _) ? "File is not a symlink" : "File does not exist"; goto END_CHECK };
+    my $target = readlink $symlink;
+    (-e $target) or do { push @{ $res->[2] }, "Broken symlink, target does not exist ($target)"; goto END_CHECK };
+    if (defined $args{is_abs}) {
+        require File::Spec;
+        if ($args{is_abs}) {
+            unless (File::Spec->file_name_is_absolute($target)) {
+                push @{ $res->[2] }, "Symlink target is not an absolute path";
+            }
+        } else {
+            if (File::Spec->file_name_is_absolute($target)) {
+                push @{ $res->[2] }, "Symlink target is not a relative path";
+            }
+        }
+    }
+    if (defined $args{target}) {
+        require Cwd;
+        my $wanted_abs_target = Cwd::abs_path($args{target});
+        my $abs_target = Cwd::abs_path($target);
+        unless ($wanted_abs_target eq $abs_target) {
+            push @{ $res->[2] }, "Symlink target is not the same as wanted ($args{target})";
+        }
+    }
+  CHECK_EXT_MATCHES: {
+        if ($args{ext_matches}) {
+            my ($symlink_ext) = $symlink =~ /\.(\w+)\z/;
+            my ($target_ext)  = $target  =~ /\.(\w+)\z/;
+            last CHECK_EXT_MATCHES unless defined $symlink_ext && defined $target_ext;
+            unless (lc($symlink_ext) eq lc($target_ext)) {
+                push @{ $res->[2] }, "Symlink extension ($symlink_ext) does not match target's ($target_ext)";
+            }
+        }
+    }
+  CHECK_CONTENT_MATCHES: {
+        if ($args{content_matches}) {
+            require File::MimeInfo::Magic;
+            my ($symlink_ext) = $symlink =~ /\.(\w+)\z/;
+            open my $fh, "<", $symlink or do { push @{ $res->[2] }, "Can't open symlink target for content checking: $!"; last CHECK_CONTENT_MATCHES };
+            my $type = File::MimeInfo::Magic::mimetype($fh);
+            my @exts; @exts = File::MimeInfo::Magic::extensions($type) if $type;
+            if (defined($symlink_ext) && @exts) {
+                my $found;
+                for my $ext (@exts) {
+                    if (lc $ext eq lc $symlink_ext) { $found++; last }
+                }
+                unless ($found) {
+                    push @{ $res->[2] }, "Symlink extension ($symlink_ext) does not match content type ($type, exts=".join("|", @exts).")";
+                }
+            } elsif (defined($symlink_ext) xor @exts) {
+                if (defined $symlink_ext) {
+                    push @{ $res->[2] }, "Content type is unknown but symlink has extension ($symlink_ext)";
+                } else {
+                    push @{ $res->[2] }, "Content type is $type but symlink does not have any extension";
+                }
+            } else {
+                # mime type is unknown and file does not have extension -> OK
+            }
+        }
+    }
+
+  END_CHECK:
+    if (@{ $res->[2] }) { $res->[0] = 500; $res->[1] = "Errors" }
+    $res;
+}
+
 1;
 # ABSTRACT: Utilities related to symbolic links
 
@@ -95,6 +166,7 @@ sub adjust_rel_symlink {
                        symlink_rel
                        symlink_abs
                        adjust_rel_symlink
+                       check_symlink
  );
 
  chdir "/home/ujang";
@@ -111,6 +183,11 @@ sub adjust_rel_symlink {
  symlink "dir1/target", "symlink1";
  % cp -a  "symlink1", "dir2/symlink2";           # dir2/symlink2 points to dir1/target, which is now broken
  adjust_rel_symlink "symlink1", "dir2/symlink2"; # dir2/symlink2 is now fixed, points to ../dir1/target
+
+ # check various aspects of a symlink
+ my $res = check_symlink(symlink => "symlink1");                                     # => [200, "OK", []]
+ my $res = check_symlink(symlink => "not-a-symlink");                                # => [500, "Errors", ["File is not a symlink"]]
+ my $res = check_symlink(symlink => "link-to-a-pic.txt", is_abs=>1, ext_matches=>1); # => [500, "Errors", ["Symlink target is not absolute path", "Extension of symlink does not match target's (jpg)"]]
 
 
 =head1 DESCRIPTION
@@ -146,10 +223,56 @@ Adjust relative symlink in C<$link_path2> (that used to be relative to
 C<$link_path1>) so that its target now becomes relative to C<$link_path2>.
 
 This is useful if you copy a relative symlink e.g. C<$link_path1> to
-C<$link_path2>. Because the target is not adjusted, and want the new symlink to
-point to the original target.
+C<$link_path2>. Because the target is not adjusted, and you want the new symlink
+to point to the original target. See example in Synopsis for illustration.
 
 Both C<$link_path1> and C<$link_path2> must be symlink.
+
+=head2 check_symlink
+
+Usage:
+
+ my $res = check_symlink(%args);
+
+Perform various checks on a symlink. Will return an <enveloped
+result|Rinci::function/"Enveloped result">, an array of the following structure:
+C<< [$code, $message, $content] >>. C<$status> will be 200 if symlink passes all
+checks. Otherwise, status will be 500 with C<$content> containing an arrayref of
+error messages.
+
+Arguments:
+
+=over
+
+=item * symlink
+
+Str, required. Path to the symlink.
+
+=item * target
+
+Str, optional. If specified, then target of symlink (after normalized to
+absolute path) will be checked and must point to this target.
+
+=item * is_abs
+
+Bool, optional. If set to true, then symlink target must be an absolute path. If
+set to false, then symlink target must be a relative path.
+
+=item * ext_matches
+
+Bool, optional. If set to true, then if both symlink name and target filename
+contain filename extension (e.g. C<.jpg>) then they must match. Case variation
+is allowed (e.g. C<JPG>) but other variation is not (e.g. C<jpeg>).
+
+=item * content_matches
+
+Bool, optional. If set to true, will guess media type from content and check
+that file extension exists nd matches the media type. Requires
+L<File::MimeInfo::Magic>, which is not explicitly specified as dependency by
+File-Symlink-Util distribution.
+
+=back
+
 
 =head1 SEE ALSO
 
