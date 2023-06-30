@@ -268,8 +268,8 @@ is allowed (e.g. C<JPG>) but other variation is not (e.g. C<jpeg>).
 
 Bool, optional. If set to true, will guess media type from content and check
 that file extension exists nd matches the media type. Requires
-L<File::MimeInfo::Magic>, which is not explicitly specified as dependency by
-File-Symlink-Util distribution.
+L<File::MimeInfo::Magic>, which is only specified as a "Recommends" dependency
+by File-Symlink-Util distribution.
 
 =back
 
