@@ -20,6 +20,7 @@ our @EXPORT_OK = qw(
                        check_symlink
                );
 
+our %SPEC;
 
 sub symlink_rel {
     my ($dest_path, $link_path) = @_;
@@ -86,6 +87,62 @@ sub adjust_rel_symlink {
     log_trace "Adjusted symlink %s (from target '%s' to target '%s')", $link_path2, $dest_path2, $new_dest_path2;
     1;
 }
+
+$SPEC{check_symlink} = {
+    v => 1.1,
+    summary => "Perform various checks on a symlink",
+    args => {
+        symlink => {
+            summary => "Path to the symlink to be checked",
+            schema => "filename*",
+            req => 1,
+            pos => 0,
+        },
+        target => {
+            summary => "Expected target path",
+            schema => "filename*",
+            pos => 1,
+            description => <<'_',
+
+If specified, then target of symlink (after normalized to absolute path) will be
+checked and must point to this target.
+
+_
+        },
+        is_abs => {
+            summary => 'Whether we should check that symlink target is an absolute path',
+            schema => 'bool',
+            description => <<'_',
+
+If set to true, then symlink target must be an absolute path. If
+set to false, then symlink target must be a relative path.
+
+_
+        },
+        ext_matches => {
+            summary => 'Whether extension should match',
+            schema => 'bool',
+            description => <<'_',
+
+If set to true, then if both symlink name and target filename contain filename
+extension (e.g. `jpg`) then they must match. Case variation is allowed (e.g.
+`JPG`) but other variation is not (e.g. `jpeg`).
+
+_
+        },
+        content_matches => {
+            summary => 'Whether content should match extension',
+            schema => 'bool',
+            description => <<'_',
+
+If set to true, will guess media type from content and check that file extension
+exists nd matches the media type. Requires <pm:File::MimeInfo::Magic>, which is
+only specified as a "Recommends" dependency by File-Symlink-Util distribution.
+
+_
+        },
+    },
+};
 
 sub check_symlink {
     my %args = @_;
@@ -193,7 +250,7 @@ sub check_symlink {
 =head1 DESCRIPTION
 
 
-=head1 FUNCTIONS
+=head1 prepend:FUNCTIONS
 
 =head2 symlink_rel
 
@@ -227,51 +284,6 @@ C<$link_path2>. Because the target is not adjusted, and you want the new symlink
 to point to the original target. See example in Synopsis for illustration.
 
 Both C<$link_path1> and C<$link_path2> must be symlink.
-
-=head2 check_symlink
-
-Usage:
-
- my $res = check_symlink(%args);
-
-Perform various checks on a symlink. Will return an <enveloped
-result|Rinci::function/"Enveloped result">, an array of the following structure:
-C<< [$code, $message, $content] >>. C<$status> will be 200 if symlink passes all
-checks. Otherwise, status will be 500 with C<$content> containing an arrayref of
-error messages.
-
-Arguments:
-
-=over
-
-=item * symlink
-
-Str, required. Path to the symlink.
-
-=item * target
-
-Str, optional. If specified, then target of symlink (after normalized to
-absolute path) will be checked and must point to this target.
-
-=item * is_abs
-
-Bool, optional. If set to true, then symlink target must be an absolute path. If
-set to false, then symlink target must be a relative path.
-
-=item * ext_matches
-
-Bool, optional. If set to true, then if both symlink name and target filename
-contain filename extension (e.g. C<.jpg>) then they must match. Case variation
-is allowed (e.g. C<JPG>) but other variation is not (e.g. C<jpeg>).
-
-=item * content_matches
-
-Bool, optional. If set to true, will guess media type from content and check
-that file extension exists nd matches the media type. Requires
-L<File::MimeInfo::Magic>, which is only specified as a "Recommends" dependency
-by File-Symlink-Util distribution.
-
-=back
 
 
 =head1 SEE ALSO
