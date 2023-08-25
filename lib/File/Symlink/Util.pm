@@ -118,6 +118,9 @@ If set to true, then symlink target must be an absolute path. If
 set to false, then symlink target must be a relative path.
 
 _
+            cmdline_aliases => {
+                is_rel => {is_flag=>1, summary=>'Alias for --no-is-abs', code=>sub { $_[0]{is_abs} = 0 }},
+            },
         },
         ext_matches => {
             summary => 'Whether extension should match',
