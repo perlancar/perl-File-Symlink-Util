@@ -119,7 +119,8 @@ set to false, then symlink target must be a relative path.
 
 _
             cmdline_aliases => {
-                is_rel => {is_flag=>1, summary=>'Alias for --no-is-abs', code=>sub { $_[0]{is_abs} = 0 }},
+                is_rel   => {is_flag=>1, summary=>'Alias for --isnt-abs', code=>sub { $_[0]{is_abs} = 0 }},
+                isnt_rel => {is_flag=>1, summary=>'Alias for --is-abs', code=>sub { $_[0]{is_abs} = 1 }},
             },
         },
         ext_matches => {
