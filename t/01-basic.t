@@ -8,7 +8,7 @@ use Test::More 0.98;
 use File::chdir;
 #use File::Slurper qw(write_text);
 use File::Spec;
-use File::Symlink::Util qw(
+use File::Util::Symlink qw(
                               symlink_rel
                               symlink_abs
                               adjust_rel_symlink

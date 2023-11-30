@@ -1,4 +1,4 @@
-package File::Symlink::Util;
+package File::Util::Symlink;
 
 use 5.010001;
 use strict;
@@ -223,7 +223,7 @@ sub check_symlink {
 
 =head1 SYNOPSIS
 
- use File::Symlink::Util qw(
+ use File::Util::Symlink qw(
                        symlink_rel
                        symlink_abs
                        adjust_rel_symlink
@@ -297,6 +297,6 @@ Both C<$link_path1> and C<$link_path2> must be symlink.
 L<File::Symlink::Relative> provides C<symlink_r> to create relative symlinks,
 which is the same as L</symlink_rel>.
 
-L<File::MoreUtil> provides C<file_exists> and C<l_abs_path>.
+L<File::Util::Test> provides C<file_exists> and C<l_abs_path>.
 
 =cut
